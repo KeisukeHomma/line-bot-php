@@ -1,10 +1,10 @@
 <?php
 
 //チャンネルシークレット
-$channelSecret = 'チャンネルシークレット';
+$channelSecret = 'd436dd6269ce77403b3bdf2bbc2017e0';
 
 //チャンネルアクセストークン
-$channelAccessToken = 'チャンネルアクセストークン';
+$channelAccessToken = 'ZKn9unlskiyJSHtgke5A8bS1sUxk/mvjGtaj5YIYbHtChPtaQcZ4zKP+TEayMDKSxGFnd6pTv16gxvy+63uKD42P3oiZvmiplfvkcZ7GrVqXMabH/kwFZGYKXl922FTS028W/nXq4nxLQfkkwiArygdB04t89/1O/w1cDnyilFU=';
 
 //ユーザーからのメッセージ取得
 $inputData = file_get_contents('php://input');
