@@ -1,53 +1,138 @@
 <?php
 
-$accessToken = 'ZKn9unlskiyJSHtgke5A8bS1sUxk/mvjGtaj5YIYbHtChPtaQcZ4zKP+TEayMDKSxGFnd6pTv16gxvy+63uKD42P3oiZvmiplfvkcZ7GrVqXMabH/kwFZGYKXl922FTS028W/nXq4nxLQfkkwiArygdB04t89/1O/w1cDnyilFU=';
+//チャンネルシークレット
+$channelSecret = 'チャンネルシークレット';
+
+//チャンネルアクセストークン
+$channelAccessToken = 'チャンネルアクセストークン';
 
 //ユーザーからのメッセージ取得
-$json_string = file_get_contents('php://input');
-$json_object = json_decode($json_string);
+$inputData = file_get_contents('php://input');
 
-//取得データ
-$replyToken = $json_object->{"events"}[0]->{"replyToken"};        //返信用トークン
-$message_type = $json_object->{"events"}[0]->{"message"}->{"type"};    //メッセージタイプ
-$message_text = $json_object->{"events"}[0]->{"message"}->{"text"};    //メッセージ内容
+//受信したJSON文字列をデコードします
+$jsonObj = json_decode($inputData);
 
-//メッセージタイプが「text」以外のときは何も返さず終了
-if($message_type != "text") exit;
+//Webhook Eventのタイプを取得
+$eventType = $jsonObj->{"events"}[0]->{"type"};
 
-//返信メッセージ
-$return_message_text = "「" . $message_text . "」じゃねーよｗｗｗ";
+//メッセージイベントだった場合です
+//テキスト、画像、スタンプなどの場合「message」になります
+//他に、follow postback beacon などがあります
+if ($eventType == 'message') {
 
-//返信実行
-sending_messages($accessToken, $replyToken, $message_type, $return_message_text);
-?>
-<?php
-//メッセージの送信
-function sending_messages($accessToken, $replyToken, $message_type, $return_message_text){
-    //レスポンスフォーマット
-    $response_format_text = [
-        "type" => $message_type,
-        "text" => $return_message_text
-    ];
+	//メッセージタイプ取得
+	//ここで、受信したメッセージがテキストか画像かなどを判別できます
+	$messageType = $jsonObj->{"events"}[0]->{"message"}->{"type"};
 
-    //ポストデータ
-    $post_data = [
-        "replyToken" => $replyToken,
-        "messages" => [$response_format_text]
-    ];
+	//ReplyToken取得
+	//受信したイベントに対して返信を行うために必要になります
+	$replyToken = $jsonObj->{"events"}[0]->{"replyToken"};
 
-    //curl実行
-    $ch = curl_init("https://api.line.me/v2/bot/message/reply");
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($post_data));
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-        'Content-Type: application/json; charser=UTF-8',
-        'Authorization: Bearer ' . $accessToken
-    ));
-    $result = curl_exec($ch);
-    curl_close($ch);
+	//メッセージタイプがtextの場合の処理
+	if ($messageType == 'text') {
+
+		//メッセージテキスト取得
+		//ここで、相手から送られてきたメッセージそのものを取得できます
+		$messageText = $jsonObj->{"events"}[0]->{"message"}->{"text"};
+
+		//返答準備1
+		//単純にテキストで返す場合です
+		//よくあるオウム返しでは、text に $messageText を入れればOKです
+		$response_format_text = [
+			"type" => "text",
+			"text" => "返答メッセージ"
+		];
+
+		//返答準備2
+		//先程取得したトークンとともに、返答する準備です
+		$post_data = [
+			"replyToken" => $replyToken,
+			"messages" => [$response_format_text]
+		];
+	}
+	//上記以外のメッセージタイプ
+	//画像やスタンプなどの場合です
+	else {
+
+		//返答準備1
+		$response_format_text = [
+			"type" => "text",
+			"text" => "メッセージ以外は受け取りません！"
+		];
+
+		//返答準備2
+		$post_data = [
+			"replyToken" => $replyToken,
+			"messages" => [$response_format_text]
+		];
+	}
 }
+
+//後は、Reply message用のURLに対して HTTP requestを行うのみです
+$ch = curl_init("https://api.line.me/v2/bot/message/reply");
+
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($post_data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+    'Content-Type: application/json; charser=UTF-8',
+    'Authorization: Bearer ' . $channelAccessToken
+    ));
+
+$result = curl_exec($ch);
+curl_close($ch);
+
+
+
+// $accessToken = 'ZKn9unlskiyJSHtgke5A8bS1sUxk/mvjGtaj5YIYbHtChPtaQcZ4zKP+TEayMDKSxGFnd6pTv16gxvy+63uKD42P3oiZvmiplfvkcZ7GrVqXMabH/kwFZGYKXl922FTS028W/nXq4nxLQfkkwiArygdB04t89/1O/w1cDnyilFU=';
+//
+// //ユーザーからのメッセージ取得
+// $json_string = file_get_contents('php://input');
+// $json_object = json_decode($json_string);
+//
+// //取得データ
+// $replyToken = $json_object->{"events"}[0]->{"replyToken"};        //返信用トークン
+// $message_type = $json_object->{"events"}[0]->{"message"}->{"type"};    //メッセージタイプ
+// $message_text = $json_object->{"events"}[0]->{"message"}->{"text"};    //メッセージ内容
+//
+// //メッセージタイプが「text」以外のときは何も返さず終了
+// if($message_type != "text") exit;
+//
+// //返信メッセージ
+// $return_message_text = "「" . $message_text . "」じゃねーよｗｗｗ";
+//
+// //返信実行
+// sending_messages($accessToken, $replyToken, $message_type, $return_message_text);
+// ?//>
+// <?//php
+// //メッセージの送信
+// function sending_messages($accessToken, $replyToken, $message_type, $return_message_text){
+//     //レスポンスフォーマット
+//     $response_format_text = [
+//         "type" => $message_type,
+//         "text" => $return_message_text
+//     ];
+//
+//     //ポストデータ
+//     $post_data = [
+//         "replyToken" => $replyToken,
+//         "messages" => [$response_format_text]
+//     ];
+//
+//     //curl実行
+//     $ch = curl_init("https://api.line.me/v2/bot/message/reply");
+//     curl_setopt($ch, CURLOPT_POST, true);
+//     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+//     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+//     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($post_data));
+//     curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+//         'Content-Type: application/json; charser=UTF-8',
+//         'Authorization: Bearer ' . $accessToken
+//     ));
+//     $result = curl_exec($ch);
+//     curl_close($ch);
+// }
 
 
 
